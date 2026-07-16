@@ -1,0 +1,99 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "ca1cdd25-d376-47ea-894f-bb2cfa81a7fd",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -384,
+        -112
+      ],
+      "id": "d2c780a7-2a79-4c7b-8c60-30893238a84c",
+      "name": "Webhook",
+      "webhookId": "ca1cdd25-d376-47ea-894f-bb2cfa81a7fd"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d6203230-4203-4af2-94ad-68e895e00005",
+              "name": "Message",
+              "value": "Day 1 working",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -160,
+        -32
+      ],
+      "id": "c91a444c-52db-4ea8-984e-3cae95d44e23",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=={{ $json.message }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        64,
+        -112
+      ],
+      "id": "ddcae5da-a608-4e14-a19f-b5d0d5c07e1a",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "507621ac-5115-4f54-b33a-967bcb44d650",
+  "meta": {
+    "instanceId": "c70ce65ade1a728b833043e0f92b5a93171fc152edd0363471d0b606ef8387de"
+  },
+  "nodeGroups": [],
+  "id": "VMrRiicTpXpLjMZc",
+  "tags": []
+}
