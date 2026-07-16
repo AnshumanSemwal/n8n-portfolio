@@ -1,0 +1,785 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-intake-a",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -384,
+        -112
+      ],
+      "id": "d2c780a7-2a79-4c7b-8c60-30893238a84c",
+      "name": "Webhook",
+      "webhookId": "ca1cdd25-d376-47ea-894f-bb2cfa81a7fd"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4611dd34-21ac-4b6f-b0ce-cd4b326d6ce0",
+              "name": "email",
+              "value": "={{ $json.body.email }}",
+              "type": "string"
+            },
+            {
+              "id": "e33dc9c8-d468-4e70-b9df-3077098de5ef",
+              "name": "name",
+              "value": "={{ $json.body.name }}",
+              "type": "string"
+            },
+            {
+              "id": "27ab7319-8150-445a-b9c5-a93a55f2a3b6",
+              "name": "message",
+              "value": "={{ $json.body.message }}",
+              "type": "string"
+            },
+            {
+              "id": "12c54a42-4c7d-40f4-b3fe-2275496c8b1b",
+              "name": "source",
+              "value": "Source A",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -176,
+        -112
+      ],
+      "id": "c91a444c-52db-4ea8-984e-3cae95d44e23",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-intake-b",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -384,
+        80
+      ],
+      "id": "f71e0f43-eb7b-4313-af13-c6ce21580cfc",
+      "name": "Webhook1",
+      "webhookId": "ca1cdd25-d376-47ea-894f-bb2cfa81a7fd"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4611dd34-21ac-4b6f-b0ce-cd4b326d6ce0",
+              "name": "email",
+              "value": "={{ $json.body.contact_email }}",
+              "type": "string"
+            },
+            {
+              "id": "e33dc9c8-d468-4e70-b9df-3077098de5ef",
+              "name": "name",
+              "value": "={{ $json.body.full_name }}",
+              "type": "string"
+            },
+            {
+              "id": "a92798b8-f5ff-4b81-9b2c-7825e58cd0a0",
+              "name": "message",
+              "value": "={{ $json.body.notes }}",
+              "type": "string"
+            },
+            {
+              "id": "12c54a42-4c7d-40f4-b3fe-2275496c8b1b",
+              "name": "source",
+              "value": "Source B",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -176,
+        80
+      ],
+      "id": "68ce014f-bfd2-441c-981e-ee25d5000fdf",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "9fd5f1b3-39f0-4fdf-9a5a-d25cebc25e42",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "b9759972-f7d9-4cfe-83ec-5788c215d76d",
+              "leftValue": "={{ $json.name }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        128,
+        -32
+      ],
+      "id": "c9579abe-6581-448e-98ed-79b76a77e0d7",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "removeItemsSeenInPreviousExecutions",
+        "dedupeValue": "={{ $json.email }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        336,
+        -128
+      ],
+      "id": "b0f3ed48-8db1-4d38-bf91-d1388d1e6484",
+      "name": "Remove Duplicates"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appqIiizkKzWywgph",
+          "mode": "list",
+          "cachedResultName": "n8n-leads",
+          "cachedResultUrl": "https://airtable.com/appqIiizkKzWywgph"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblGn8DPBAlQyZYe2",
+          "mode": "list",
+          "cachedResultName": "leads",
+          "cachedResultUrl": "https://airtable.com/appqIiizkKzWywgph/tblGn8DPBAlQyZYe2"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "email": "={{ $json.email }}",
+            "name": "={{ $json.name }}",
+            "message": "={{ $json.message }}",
+            "source": "={{ $json.source }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        2288,
+        -128
+      ],
+      "id": "972b299c-9805-467c-bfdd-489b0183002d",
+      "name": "Create a record",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "xn3XVsqm3zivn6lE",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "64d395b7-efab-42c6-b2d4-d986974fa018",
+              "name": "enriched",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "c20281e2-c56c-44b9-98d1-27c7e5a11ef9",
+              "name": "email",
+              "value": "={{ $('Remove Duplicates').item.json.email }}",
+              "type": "string"
+            },
+            {
+              "id": "faa8176c-10c3-4d23-9972-51da54b0152f",
+              "name": "name",
+              "value": "={{ $('Remove Duplicates').item.json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "78791c23-c82e-4692-9621-ea2ce8891d5b",
+              "name": "message",
+              "value": "={{ $('Remove Duplicates').item.json.message }}",
+              "type": "string"
+            },
+            {
+              "id": "ee8d1aab-5f23-4913-8c0f-599ad48c6087",
+              "name": "source",
+              "value": "={{ $('Remove Duplicates').item.json.source }}",
+              "type": "string"
+            },
+            {
+              "id": "286d4d69-04aa-40fd-9087-48c017dcfa6b",
+              "name": "company",
+              "value": "unknown",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1040,
+        -240
+      ],
+      "id": "65dc5367-2f16-4212-9a99-a710f0c0c0c2",
+      "name": "Mark Enriched",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "url": "https://webhook.site/8da3ad4d-e0b8-455d-bfe7-3ade0a9e3380",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "email",
+              "value": "={{ $json.email }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        608,
+        -128
+      ],
+      "id": "2a3fd092-4eb9-45b8-ad34-40397365e343",
+      "name": "Enrich Lead",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const email = $json.email || '';\nconst name = $json.name || '';\nconst message = $json.message || '';\nconst enriched = $json.enriched || false;\n\nlet score = 0;\n\n// Base points for having required fields\nif (email) score += 20;\nif (name) score += 10;\nif (message && message.length > 10) score += 20;\n\n// Enrichment bonus\nif (enriched) score += 30;\n\n// Message length bonus — longer messages signal higher intent\nif (message.length > 50) score += 20;\n\n// Determine tier\nlet tier;\nif (score >= 70) tier = 'hot';\nelse if (score >= 40) tier = 'warm';\nelse tier = 'cold';\n\nreturn {\n  json: {\n    ...$json,        // keep all existing fields\n    score,           // add numeric score\n    tier             // add hot/warm/cold label\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1376,
+        -144
+      ],
+      "id": "23f465cd-49a1-450e-9cb1-69eb664aa93b",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.tier }}",
+                    "rightValue": "hot",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "4bcc820d-8bd3-47f0-ae01-8cc3231d5fd4"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "815fe48e-7c1f-453b-a205-15b854decc72",
+                    "leftValue": "={{ $json.tier }}",
+                    "rightValue": "warm",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "ebf8a893-4f3a-4837-97a3-04dc45d3ca6f",
+                    "leftValue": "={{ $json.tier }}",
+                    "rightValue": "cold",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1648,
+        -160
+      ],
+      "id": "357f80c4-953d-45ca-8553-c2b94bc0a300",
+      "name": "Route by tier"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "80bbae1d-dfc0-4a50-a33e-022ff87b572d",
+              "name": "action",
+              "value": "immediate follow up",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1904,
+        -352
+      ],
+      "id": "93f54b14-d58b-4561-b4e2-f7771d9b6da0",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "80bbae1d-dfc0-4a50-a33e-022ff87b572d",
+              "name": "action",
+              "value": "add to nurture",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1920,
+        -144
+      ],
+      "id": "6613e66c-059e-41b5-af19-79e659ed08b1",
+      "name": "Edit Fields3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "80bbae1d-dfc0-4a50-a33e-022ff87b572d",
+              "name": "action",
+              "value": "archive",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1920,
+        80
+      ],
+      "id": "7b3966c4-3a8e-4c31-acfa-a9aa364b6583",
+      "name": "Edit Fields4"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "64d395b7-efab-42c6-b2d4-d986974fa018",
+              "name": "enriched",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "c20281e2-c56c-44b9-98d1-27c7e5a11ef9",
+              "name": "email",
+              "value": "={{ $('Remove Duplicates').item.json.email }}",
+              "type": "string"
+            },
+            {
+              "id": "faa8176c-10c3-4d23-9972-51da54b0152f",
+              "name": "name",
+              "value": "={{ $('Remove Duplicates').item.json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "78791c23-c82e-4692-9621-ea2ce8891d5b",
+              "name": "message",
+              "value": "={{ $('Remove Duplicates').item.json.message }}",
+              "type": "string"
+            },
+            {
+              "id": "ee8d1aab-5f23-4913-8c0f-599ad48c6087",
+              "name": "source",
+              "value": "={{ $('Remove Duplicates').item.json.source }}",
+              "type": "string"
+            },
+            {
+              "id": "286d4d69-04aa-40fd-9087-48c017dcfa6b",
+              "name": "company",
+              "value": "unknown",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1040,
+        0
+      ],
+      "id": "b3169fce-3772-4ea2-8bdf-dc912d20c430",
+      "name": "Mark Enriched1",
+      "alwaysOutputData": false
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicates",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Remove Duplicates": {
+      "main": [
+        [
+          {
+            "node": "Enrich Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a record": {
+      "main": [
+        []
+      ]
+    },
+    "Enrich Lead": {
+      "main": [
+        [
+          {
+            "node": "Mark Enriched",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark Enriched1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Enriched": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Route by tier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by tier": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Create a record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields3": {
+      "main": [
+        [
+          {
+            "node": "Create a record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields4": {
+      "main": [
+        [
+          {
+            "node": "Create a record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Enriched1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "43d3e8e1-6631-4811-91a1-84ab5f63d866",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c70ce65ade1a728b833043e0f92b5a93171fc152edd0363471d0b606ef8387de"
+  },
+  "nodeGroups": [],
+  "id": "VMrRiicTpXpLjMZc",
+  "tags": []
+}
