@@ -1,0 +1,196 @@
+{
+  "name": "Order Fulfillment Sync",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "order-intake",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -432,
+        0
+      ],
+      "id": "d4fb7754-a535-4a80-932f-972ed58c7ccc",
+      "name": "Webhook",
+      "webhookId": "94de42f3-bed3-4722-8d54-b88768e26935"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "53d8b551-a247-48e6-9f0f-c1b2a7ffb238",
+              "name": "order_id",
+              "value": "={{ $json.body.order_id }}",
+              "type": "string"
+            },
+            {
+              "id": "5dbf4663-6723-4444-8b2c-272a02ff1e4a",
+              "name": "customer_email",
+              "value": "={{ $json.body.customer_email }}",
+              "type": "string"
+            },
+            {
+              "id": "4187e2c9-b97c-414e-8577-160ebc7847a2",
+              "name": "product",
+              "value": "={{ $json.body.product }}",
+              "type": "string"
+            },
+            {
+              "id": "ac23f322-dd54-492d-bf60-ce2f76b8aaaf",
+              "name": "quantity",
+              "value": "={{ $json.body.quantity }}",
+              "type": "string"
+            },
+            {
+              "id": "b136363d-acbd-434c-baf2-3f09bca1e458",
+              "name": "total",
+              "value": "={{ $json.body.total }}",
+              "type": "string"
+            },
+            {
+              "id": "7315970b-597c-4ddf-83df-6bc032878758",
+              "name": "shipping_address",
+              "value": "={{ $json.body.shipping_address }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -208,
+        0
+      ],
+      "id": "88cd84ab-c0ab-4c1f-84ae-0e50bad1b20d",
+      "name": "Normalize Order"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://webhook.site/8da3ad4d-e0b8-455d-bfe7-3ade0a9e3380",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"order_id\": \"={{ $json.order_id }}\",\n  \"product\": \"={{ $json.product }}\",\n  \"quantity\": \"={{ $json.quantity }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "9ec5e76e-8321-484c-ac77-a183823dd7a5",
+      "name": "Sync to Warehouse",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://webhook.site/8da3ad4d-e0b8-455d-bfe7-3ade0a9e3380",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"order_id\": \"={{ $json.order_id }}\",\n  \"product\": \"={{ $json.product }}\",\n  \"quantity\": \"={{ $json.quantity }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        208,
+        -112
+      ],
+      "id": "eb354302-0d78-4bf9-aee4-42417201bc2d",
+      "name": "Sync to Shipping",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO failed_orders (\n  order_id,\n  customer_email,\n  product,\n  quantity,\n  total,\n  shipping_address,\n  error_message,\n  failed_node,\n  execution_id\n) VALUES (\n  '{{ $('Normalize Order').item.json.order_id }}',\n  '{{ $('Normalize Order').item.json.customer_email }}',\n  '{{ $('Normalize Order').item.json.product }}',\n  {{ $('Normalize Order').item.json.quantity }},\n  {{ $('Normalize Order').item.json.total }},\n  '{{ $('Normalize Order').item.json.shipping_address }}',\n  '{{ $json.error.message.replace(/'/g, \"''\") }}',\n  'Sync to Warehouse',\n  '{{ $execution.id }}'\n);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        208,
+        96
+      ],
+      "id": "b4e27fed-f2ef-4a1f-807d-ed08133bb9a4",
+      "name": "Dead Letter Queue",
+      "credentials": {
+        "postgres": {
+          "id": "smlZ1yiJKbBntooj",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Order": {
+      "main": [
+        [
+          {
+            "node": "Sync to Warehouse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sync to Warehouse": {
+      "main": [
+        [
+          {
+            "node": "Sync to Shipping",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Dead Letter Queue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "I7c3zXpjp56Ef6ID",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "efa756db-b549-40bc-9266-35ed29d87864",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c70ce65ade1a728b833043e0f92b5a93171fc152edd0363471d0b606ef8387de"
+  },
+  "nodeGroups": [],
+  "id": "CIotzqdEwpqYWjI2",
+  "tags": []
+}
