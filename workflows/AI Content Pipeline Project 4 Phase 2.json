@@ -1,0 +1,662 @@
+{
+  "name": "AI Content Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -2048,
+        240
+      ],
+      "id": "5b7a2246-f627-46af-b9fa-137ee473db3a",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCdp6GUwjKscp5ST4M4WgIpw",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -1840,
+        240
+      ],
+      "id": "e722bc97-81fb-43f7-ad43-8547bc933985",
+      "name": "Fetch RSS Feed"
+    },
+    {
+      "parameters": {
+        "jsCode": "const xml = $input.first().json.data;\n\nif (typeof xml !== 'string') {\n  throw new Error('Expected the RSS body as a string on `data`. Check that Fetch RSS Feed has responseFormat = text.');\n}\n\n// Isolate the first <entry> so feed-level <title>/<link> can never leak in.\nconst entryMatch = xml.match(/<entry>([\\s\\S]*?)<\\/entry>/);\nif (!entryMatch) {\n  throw new Error('No <entry> found in the feed.');\n}\nconst entry = entryMatch[1];\n\nconst decode = (s) =>\n  String(s ?? '')\n    .replace(/&lt;/g, '<')\n    .replace(/&gt;/g, '>')\n    .replace(/&quot;/g, '\"')\n    .replace(/&#39;/g, \"'\")\n    .replace(/&apos;/g, \"'\")\n    .replace(/&#(\\d+);/g, (_, d) => String.fromCharCode(Number(d)))\n    .replace(/&amp;/g, '&')\n    .trim();\n\nconst titleMatch = entry.match(/<title>([\\s\\S]*?)<\\/title>/);\nconst linkMatch = entry.match(/<link[^>]*href=\"([^\"]*)\"/);\nconst publishedMatch = entry.match(/<published>(.*?)<\\/published>/);\nconst videoIdMatch = entry.match(/<yt:videoId>(.*?)<\\/yt:videoId>/);\nconst authorMatch = entry.match(/<author>[\\s\\S]*?<name>([\\s\\S]*?)<\\/name>/)\n  || xml.match(/<author>[\\s\\S]*?<name>([\\s\\S]*?)<\\/name>/);\n\nreturn [{\n  json: {\n    title: titleMatch ? decode(titleMatch[1]) : 'Unknown Title',\n    url: linkMatch ? decode(linkMatch[1]) : '',\n    video_id: videoIdMatch ? videoIdMatch[1] : '',\n    published: publishedMatch ? publishedMatch[1].trim() : '',\n    author: authorMatch ? decode(authorMatch[1]) : 'Unknown',\n    channel: 'Andrej Karpathy'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1632,
+        240
+      ],
+      "id": "f499b699-92d6-4cc4-9bd5-c5249173ab6f",
+      "name": "Parse Latest Video"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Video title: {{ $json.title }}\nChannel: {{ $json.channel }}\nURL: {{ $json.url }}\nPublished: {{ $json.published }}\n{{ $json.feedback ? \"Previous draft was rejected. Reviewer feedback: \" + $json.feedback + \". Please revise accordingly.\" : \"\" }}\n{{ $json.revision_count > 0 ? \"This is revision attempt \" + $json.revision_count + \" of 3.\" : \"\" }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are a social media content writer specializing in AI content. Write an engaging Twitter/X thread (3 tweets) about the YouTube video described. Be informative, use relevant hashtags, and end with the video URL. Keep each tweet under 280 characters.\n\nOutput ONLY the thread in exactly this format, with no preamble, no commentary and no markdown:\nTweet 1: [content]\nTweet 2: [content]\nTweet 3: [content]"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -1248,
+        80
+      ],
+      "id": "e446695e-c550-43ef-a433-09664b0c591c",
+      "name": "Draft Content"
+    },
+    {
+      "parameters": {
+        "model": "groq/compound-mini",
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -1216,
+        480
+      ],
+      "id": "1821063d-4f18-4a32-b6f7-ba532a2e31ef",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "lsJ0uFneh9TP80qg",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "chatId": "8815442627",
+        "message": "=🎬 New Video Draft Ready for Approval\n\nChannel: {{ $json.channel }}\nVideo: {{ $json.title }}\nURL: {{ $json.url }}\nRevision: {{ $json.revision_count }} of 3\n\n📝 Draft Content:\n{{ $json.text }}\n\nApprove or reject this draft?",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double"
+          }
+        },
+        "options": {
+          "limitWaitTime": {
+            "values": {
+              "resumeAmount": 24
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -624,
+        272
+      ],
+      "id": "54a4f980-65ff-42c0-a442-0baa807ce28f",
+      "name": "Send message and wait for response",
+      "webhookId": "b2c17634-f53a-4d17-b1dc-b239938eb079",
+      "alwaysOutputData": false,
+      "credentials": {
+        "telegramApi": {
+          "id": "Eyg9H7QYy8vwxMJV",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "8815442627",
+        "text": "=✅ Draft approved and queued for publishing! Video: {{ $('Parse Latest Video').first().json.title }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        32,
+        -176
+      ],
+      "id": "f34729b0-63b8-46ff-89be-1e19206761a9",
+      "name": "Send approved message",
+      "webhookId": "fb48fb2e-2e0f-4807-a983-4cef15a0dc32",
+      "credentials": {
+        "telegramApi": {
+          "id": "Eyg9H7QYy8vwxMJV",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "8815442627",
+        "text": "=⚠️ Maximum revisions reached (3). Draft discarded for: {{ $json.title }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        96,
+        640
+      ],
+      "id": "472bba44-5fd4-434d-b8da-1829d06f9c90",
+      "name": "Send a text message",
+      "webhookId": "c657765a-1ea3-4533-bce5-eca73a93e187",
+      "credentials": {
+        "telegramApi": {
+          "id": "Eyg9H7QYy8vwxMJV",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// The counter must live in the item data, not in workflow static data.\n// `Send message and wait` suspends the execution and resumes it in a fresh\n// workflow instance, where $getWorkflowStaticData() is re-read from the DB\n// (and is never written at all for manual runs of an inactive workflow).\n\nreturn [{\n  json: {\n    ...$input.first().json,\n    revision_count: 0,\n    feedback: ''\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1424,
+        240
+      ],
+      "id": "c546d4d7-2f5b-4c12-b039-2b013d038860",
+      "name": "Initialize Counter"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2ec1558f-abd3-4a83-9fe6-53faf75f53cb",
+              "leftValue": "={{ $json.revision_count }}",
+              "rightValue": 3,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        144,
+        256
+      ],
+      "id": "83cd02e7-d66c-496d-954a-d79c97f38cbd",
+      "name": "Check Max Revisions"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5c72d2a4-6951-4c1b-8fae-d5dc87b16faf",
+              "name": "title",
+              "value": "={{ $('Parse Latest Video').first().json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "abe4458f-e687-4a84-9b1a-6c4c562998cd",
+              "name": "url",
+              "value": "={{ $('Parse Latest Video').first().json.url }}",
+              "type": "string"
+            },
+            {
+              "id": "8abbed2c-4cf1-42ae-8e6b-17d54f3ea2cf",
+              "name": "channel",
+              "value": "={{ $('Parse Latest Video').first().json.channel }}",
+              "type": "string"
+            },
+            {
+              "id": "0ff35843-f77b-4660-86a4-f55f13234c87",
+              "name": "published",
+              "value": "={{ $('Parse Latest Video').first().json.published }}",
+              "type": "string"
+            },
+            {
+              "id": "ee2b26f6-4caf-4f69-8794-9ba3d9f8df34",
+              "name": "revision_count",
+              "value": "={{ $json.revision_count }}",
+              "type": "number"
+            },
+            {
+              "id": "0a62e022-cef2-41e9-933d-e32ce2cdbed4",
+              "name": "feedback",
+              "value": "={{ $('Send message and wait for response').first().json.data?.text || 'The reviewer rejected the previous draft. Take a noticeably different angle, hook and tone.' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        432,
+        288
+      ],
+      "id": "e0ee866c-8818-41b8-a505-9f76a6400325",
+      "name": "Add Feedback"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appqIiizkKzWywgph",
+          "mode": "list",
+          "cachedResultName": "n8n-leads",
+          "cachedResultUrl": "https://airtable.com/appqIiizkKzWywgph"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblG9IPN2f4ODoMpy",
+          "mode": "list",
+          "cachedResultName": "content_calendar",
+          "cachedResultUrl": "https://airtable.com/appqIiizkKzWywgph/tblG9IPN2f4ODoMpy"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "title": "={{ $('Parse Latest Video').first().json.title }}",
+            "channel": "={{ $('Parse Latest Video').first().json.channel }}",
+            "URL": "={{ $('Parse Latest Video').first().json.url }}",
+            "Tweet 1": "={{ $('Code in JavaScript').first().json.tweet1 }}",
+            "Tweet 2": "={{ $('Code in JavaScript').first().json.tweet2 }}",
+            "Tweet 3": "={{ $('Code in JavaScript').first().json.tweet3 }}",
+            "status": "approved",
+            "approved_at": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "channel",
+              "displayName": "channel",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "URL",
+              "displayName": "URL",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Tweet 1",
+              "displayName": "Tweet 1",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Tweet 2",
+              "displayName": "Tweet 2",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Tweet 3",
+              "displayName": "Tweet 3",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "approved_at",
+              "displayName": "approved_at",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        -240,
+        -80
+      ],
+      "id": "b3e0d9c4-e318-4831-85e7-03e84f484891",
+      "name": "Create a record",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "xn3XVsqm3zivn6lE",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "dc67f6c7-c80f-4b3e-a0af-d043846ca7da",
+              "leftValue": "={{ $json.data?.approved === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -416,
+        176
+      ],
+      "id": "fc9707fd-ad6f-4779-a2c2-b756d0723960",
+      "name": "Check Approval"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Carry the whole payload forward and bump the counter that lives in the\n// item data. `Check Approval`'s output only contains { data: {...} } from the\n// Telegram wait node, so the state is pulled from the merge node by name.\nconst state = $('Code in JavaScript').first().json;\n\nreturn [{\n  json: {\n    ...state,\n    revision_count: (state.revision_count ?? 0) + 1\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -144,
+        256
+      ],
+      "id": "9ab6a864-1dea-4806-ba8e-3c7b4c45ceb7",
+      "name": "Increment Counter"
+    },
+    {
+      "parameters": {
+        "jsCode": "const video = $('Parse Latest Video').first().json;\nconst draft = $input.first().json; // chainLlm outputs only { text }\n\n// chainLlm does NOT pass input fields through, so the loop state has to be\n// read from whichever node fed it: Add Feedback on revisions, Initialize\n// Counter on the first pass. Referencing an unexecuted node throws.\nlet state;\ntry {\n  state = $('Add Feedback').first().json;\n} catch (e) {\n  state = $('Initialize Counter').first().json;\n}\n\nconst text = draft.text ?? '';\n\nconst grabTweet = (n) => {\n  const re = new RegExp(\n    `Tweet\\\\s*${n}\\\\s*[:\\\\-\\\\)]?\\\\s*(.*?)(?=\\\\s*\\\\**\\\\s*Tweet\\\\s*${n + 1}\\\\s*[:\\\\-\\\\)]|$)`,\n    'is'\n  );\n  const m = text.match(re);\n  return m ? m[1].replace(/\\*\\*/g, '').trim() : '';\n};\n\nreturn [{\n  json: {\n    title: video.title,\n    url: video.url,\n    channel: video.channel,\n    published: video.published,\n    revision_count: state.revision_count ?? 0,\n    feedback: state.feedback ?? '',\n    text,\n    tweet1: grabTweet(1),\n    tweet2: grabTweet(2),\n    tweet3: grabTweet(3)\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -912,
+        80
+      ],
+      "id": "4e71feeb-8040-46f5-b79b-b2514b5106bb",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch RSS Feed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch RSS Feed": {
+      "main": [
+        [
+          {
+            "node": "Parse Latest Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Latest Video": {
+      "main": [
+        [
+          {
+            "node": "Initialize Counter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Draft Content",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Draft Content": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send message and wait for response": {
+      "main": [
+        [
+          {
+            "node": "Check Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initialize Counter": {
+      "main": [
+        [
+          {
+            "node": "Draft Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Max Revisions": {
+      "main": [
+        [
+          {
+            "node": "Add Feedback",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Feedback": {
+      "main": [
+        [
+          {
+            "node": "Draft Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a record": {
+      "main": [
+        [
+          {
+            "node": "Send approved message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Approval": {
+      "main": [
+        [
+          {
+            "node": "Create a record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Increment Counter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Increment Counter": {
+      "main": [
+        [
+          {
+            "node": "Check Max Revisions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Send message and wait for response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "418ca905-fcc1-4e21-b905-c37ebf4cad01",
+  "meta": {
+    "instanceId": "c70ce65ade1a728b833043e0f92b5a93171fc152edd0363471d0b606ef8387de"
+  },
+  "nodeGroups": [],
+  "id": "ORnsfGT4AAUlScA6",
+  "tags": []
+}
