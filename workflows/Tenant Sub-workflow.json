@@ -1,0 +1,152 @@
+{
+  "name": "Tenant Sub-workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -272,
+        -48
+      ],
+      "id": "924dd6fa-fde6-4732-b867-2d57ca3738f7",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f91c77c1-5b2a-4824-b075-71e8c54739bc",
+              "leftValue": "={{ $json.plan }}",
+              "rightValue": "pro",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -64,
+        -48
+      ],
+      "id": "ebc65d8f-bf77-4f5f-91b4-be7e5dc10af7",
+      "name": "Route by Plan"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $json.notification_channel }}",
+          "mode": "name"
+        },
+        "text": "=🏢 [PRO] New activity for {{ $json.name }} Tenant: {{ $json.tenant_id }} Processed at: {{ $now }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        176,
+        -176
+      ],
+      "id": "c00ea49d-d2d9-4878-a070-c4ae8dcb4d5f",
+      "name": "Send a message",
+      "webhookId": "16a517f4-10cc-4db1-a1fb-7d1ac573e26f",
+      "credentials": {
+        "slackApi": {
+          "id": "tWwMCZRr05t4UFHS",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $json.notification_channel }}",
+          "mode": "name"
+        },
+        "text": "=📋 [BASIC] New activity for {{ $json.name }} Tenant: {{ $json.tenant_id }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        176,
+        96
+      ],
+      "id": "1b2e28b8-d415-4e10-9b47-a4723a7e01b5",
+      "name": "Send a message1",
+      "webhookId": "3fb64f97-8f81-423b-821c-673eb4a759c3",
+      "credentials": {
+        "slackApi": {
+          "id": "tWwMCZRr05t4UFHS",
+          "name": "Slack account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Route by Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Plan": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "32430cc8-c122-4241-8590-d4086dc284c4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c70ce65ade1a728b833043e0f92b5a93171fc152edd0363471d0b606ef8387de"
+  },
+  "nodeGroups": [],
+  "id": "Tsu7wpWMkCrIR4gN",
+  "tags": []
+}
