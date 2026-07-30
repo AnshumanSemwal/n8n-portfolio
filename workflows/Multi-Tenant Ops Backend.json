@@ -10,7 +10,7 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -304,
+        -544,
         -48
       ],
       "id": "0447145c-bbcb-48b6-99e1-81288408506e",
@@ -26,7 +26,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -96,
+        -336,
         -48
       ],
       "id": "2d2a585e-6ab6-491a-8cbc-219e8126cca1",
@@ -37,40 +37,6 @@
           "name": "Postgres account"
         }
       }
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 3
-          },
-          "conditions": [
-            {
-              "id": "4bd59ad2-2b5e-4ff0-908c-94f0d6a90636",
-              "leftValue": "={{ $json.tenant_id }}",
-              "rightValue": "",
-              "operator": {
-                "type": "string",
-                "operation": "notEmpty",
-                "singleValue": true
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.3,
-      "position": [
-        112,
-        -48
-      ],
-      "id": "3a7d55e9-e343-4834-a5ec-b693580d8ef3",
-      "name": "Tenant Exists"
     },
     {
       "parameters": {
@@ -94,11 +60,45 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        320,
-        -176
+        608,
+        -256
       ],
       "id": "d6943cf6-620f-4c5e-b160-ecce18e0cc5a",
       "name": "Run Tenant Workflow"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "076685bb-0dec-438a-b657-71c9947e1fd3",
+              "leftValue": "={{ $json.subscription_status }}",
+              "rightValue": "active",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -16,
+        -48
+      ],
+      "id": "d0130d93-d525-4727-8004-db1c85d33611",
+      "name": "Billing Gate"
     },
     {
       "parameters": {
@@ -108,22 +108,43 @@
           "mode": "name",
           "value": "#support-urgent"
         },
-        "text": "=⚠️ Unknown tenant attempted onboarding: {{ $json.body.tenant_id }}",
+        "text": "=🚫 Tenant {{ $('Fetch Tenant Config').item.json.tenant_id }} blocked — subscription inactive",
         "otherOptions": {}
       },
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2.5,
       "position": [
-        320,
-        48
+        400,
+        32
       ],
-      "id": "55d7d625-e89f-4252-9226-c8b06c747df3",
-      "name": "Send a message",
+      "id": "4b8c2149-8929-4625-932d-373a45b29ed3",
+      "name": "Send a message1",
       "webhookId": "891531ab-37ed-4521-b499-5089f8ab537d",
       "credentials": {
         "slackApi": {
           "id": "tWwMCZRr05t4UFHS",
           "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO tenant_usage (tenant_id, workflow_name, status)\nVALUES (\n  '{{ $('Fetch Tenant Config').item.json.tenant_id }}',\n  'Multi-Tenant Ops Backend',\n  'success'\n);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        816,
+        -256
+      ],
+      "id": "18736eb6-2bef-4979-9160-0b21fd0bf26a",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "smlZ1yiJKbBntooj",
+          "name": "Postgres account"
         }
       }
     }
@@ -145,14 +166,14 @@
       "main": [
         [
           {
-            "node": "Tenant Exists",
+            "node": "Billing Gate",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Tenant Exists": {
+    "Billing Gate": {
       "main": [
         [
           {
@@ -163,7 +184,18 @@
         ],
         [
           {
-            "node": "Send a message",
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Tenant Workflow": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
             "type": "main",
             "index": 0
           }
@@ -177,7 +209,7 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "1a5efa89-06ab-4ab5-9dc1-7aab595035d5",
+  "versionId": "a013d5c7-69a2-4ef6-9f27-60118d6f24d9",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "c70ce65ade1a728b833043e0f92b5a93171fc152edd0363471d0b606ef8387de"
